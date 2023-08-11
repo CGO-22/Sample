@@ -1,0 +1,19 @@
+name: Sample/Sample_(1)
+on:
+  push:
+    branches:
+    - main
+jobs:
+  build:
+    runs-on:
+      - self-hosted
+      - default
+    steps:
+    - name: checkout
+      uses: actions/checkout@v3.5.0
+    - name: Run a one-line script
+      run: echo Hello, world!
+    - name: Run a multi-line script
+      run: |-
+        echo Add other tasks to build, test, and deploy your project.
+        echo See https://aka.ms/yaml
