@@ -21,24 +21,24 @@ def get_notes_for_issue(issue_id):
 with open("all_issues_comments_grouped.csv", mode="w", newline="", encoding="utf-8") as csv_file:
     writer = csv.writer(csv_file)
 
-    # Get a list of all issues
-    issues_url = f"{BASE_URL}/issues?per_page=100"  # Adjust per_page as needed
+    # Create headers for Upload Paths
+    headers = ["Issue ID", "Upload Paths"]
+    writer.writerow(headers)
+
     page = 1
 
-    # Create headers for Upload Paths outside the loop
-    headers_created = False
-
     while True:
-        response = requests.get(issues_url + f"&page={page}", headers={"PRIVATE-TOKEN": ACCESS_TOKEN})
+        issues_url = f"{BASE_URL}/issues?per_page=100&page={page}"
+        response = requests.get(issues_url, headers={"PRIVATE-TOKEN": ACCESS_TOKEN})
+        
         if response.status_code != 200:
             print(f"Failed to retrieve issues. Status code: {response.status_code}")
             break
+        
         issues_data = response.json()
+        
         if not issues_data:
             break  # No more issues to retrieve
-
-        # Create a dictionary to store upload paths for each issue
-        upload_paths_dict = {}
 
         for issue in issues_data:
             issue_id = issue["id"]
@@ -54,21 +54,8 @@ with open("all_issues_comments_grouped.csv", mode="w", newline="", encoding="utf
             prefix = 'file://csvimport/'
             upload_paths = [prefix + path for path in upload_paths]
 
-            upload_paths_dict[issue_id] = upload_paths
-
-        # Determine the maximum number of upload paths across all issues
-        max_upload_paths = max(len(paths) for paths in upload_paths_dict.values())
-
-        if not headers_created:
-            # Create headers for Upload Paths if not created yet
-            headers = ["Issue ID"] + [f"Upload Paths {i+1}" for i in range(max_upload_paths)]
-            writer.writerow(headers)
-            headers_created = True
-
-        # Write data to CSV
-        for issue_id, paths in upload_paths_dict.items():
-            paths += [''] * (max_upload_paths - len(paths))  # Pad with empty strings
-            row_data = [issue_id] + paths
+            # Write data to CSV
+            row_data = [issue_id, ",".join(upload_paths)]
             writer.writerow(row_data)
 
         page += 1
