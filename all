@@ -46,6 +46,10 @@ with open("all_issues_comments_grouped.csv", mode="w", newline="", encoding="utf
                 uploads = re.findall(r'/uploads/[^)]*', body)
                 upload_paths.extend(uploads)
 
+            # Add the prefix to each upload path
+            prefix = 'file://csvimport/'
+            upload_paths = [prefix + path for path in upload_paths]
+
             upload_paths_dict[issue_id] = upload_paths
 
         # Determine the maximum number of upload paths across all issues
@@ -57,7 +61,8 @@ with open("all_issues_comments_grouped.csv", mode="w", newline="", encoding="utf
 
         # Write data to CSV
         for issue_id, paths in upload_paths_dict.items():
-            row_data = [issue_id] + paths + [''] * (max_upload_paths - len(paths))
+            paths += [''] * (max_upload_paths - len(paths))  # Pad with empty strings
+            row_data = [issue_id] + paths
             writer.writerow(row_data)
 
         page += 1
