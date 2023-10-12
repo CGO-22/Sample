@@ -15,55 +15,51 @@ def get_notes_for_issue(issue_id):
     response = requests.get(notes_url, headers={"PRIVATE-TOKEN": ACCESS_TOKEN})
     if response.status_code == 200:
         return response.json()
-    else:
-        print(f"Failed to retrieve notes for issue {issue_id}. Status code: {response.status_code}")
-        return []
+    return []
 
-# Create a list of dictionaries to store the data
-data_list = []
+# Create a CSV file and write the data
+with open("all_issues_comments_grouped.csv", mode="w", newline="", encoding="utf-8") as csv_file:
+    writer = csv.writer(csv_file)
 
-# Get a list of all issues
-issues_url = f"{BASE_URL}/issues?per_page=100"  # Adjust per_page as needed
-page = 1
-while True:
-    response = requests.get(issues_url + f"&page={page}", headers={"PRIVATE-TOKEN": ACCESS_TOKEN})
-    if response.status_code == 200:
+    # Get a list of all issues
+    issues_url = f"{BASE_URL}/issues?per_page=100"  # Adjust per_page as needed
+    page = 1
+    while True:
+        response = requests.get(issues_url + f"&page={page}", headers={"PRIVATE-TOKEN": ACCESS_TOKEN})
+        if response.status_code != 200:
+            print(f"Failed to retrieve issues. Status code: {response.status_code}")
+            break
         issues_data = response.json()
         if not issues_data:
             break  # No more issues to retrieve
+
+        # Create a dictionary to store upload paths for each issue
+        upload_paths_dict = {}
+        
         for issue in issues_data:
             issue_id = issue["iid"]
             notes = get_notes_for_issue(issue_id)
             upload_paths = []
+
             for note in notes:
-                # Check if "body" contains "/uploads/"
                 body = note["body"]
                 uploads = re.findall(r'/uploads/[^)]*', body)
                 upload_paths.extend(uploads)
 
-            # Add the prefix to each upload path
-            prefix = 'file://csvimport'
-            upload_paths = [prefix + path for path in upload_paths]
+            upload_paths_dict[issue_id] = upload_paths
 
-            # Create a dictionary with "Issue ID" as the key
-            data_dict = {"Issue ID": issue_id}
-            # Add the "Upload Paths" as values
-            for i, path in enumerate(upload_paths):
-                data_dict[f"Upload Paths {i+1}"] = path
-            data_list.append(data_dict)
+        # Determine the maximum number of upload paths across all issues
+        max_upload_paths = max(len(paths) for paths in upload_paths_dict.values())
+
+        # Create headers for Upload Paths
+        headers = ["Issue ID"] + [f"Upload Paths {i+1}" for i in range(max_upload_paths)]
+        writer.writerow(headers)
+
+        # Write data to CSV
+        for issue_id, paths in upload_paths_dict.items():
+            row_data = [issue_id] + paths + [''] * (max_upload_paths - len(paths))
+            writer.writerow(row_data)
 
         page += 1
-    else:
-        print(f"Failed to retrieve issues. Status code: {response.status_code}")
-        break
-
-# Create a CSV file and write the data with headers
-with open("all_issues_comments_grouped3.csv", mode="w", newline="", encoding="utf-8") as csv_file:
-    fieldnames = ["Issue ID"] + [key for data in data_list for key in data.keys() if key != "Issue ID"]
-    writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-    writer.writeheader()
-
-    for data in data_list:
-        writer.writerow(data)
 
 print("Data has been saved to all_issues_comments_grouped.csv")
