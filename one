@@ -1,0 +1,44 @@
+import requests
+import csv
+import re
+
+# Set your GitLab project ID and access token
+PROJECT_ID = 41299063
+ACCESS_TOKEN = "glpat-XsRzi9SD8yHJyMavhhh3"
+ISSUE_ID = 4  # Specify the specific issue you want to process
+
+# Define the API endpoint URL
+BASE_URL = f"https://gitlab.com/api/v4/projects/{PROJECT_ID}"
+
+# Function to retrieve notes for a specific issue
+def get_notes_for_issue(issue_id):
+    notes_url = f"{BASE_URL}/issues/{issue_id}/notes"
+    response = requests.get(notes_url, headers={"PRIVATE-TOKEN": ACCESS_TOKEN})
+    if response.status_code == 200:
+        return response.json()
+    else:
+        print(f"Failed to retrieve notes for issue {issue_id}. Status code: {response.status_code}")
+        return []
+
+# Create a CSV file and write the data
+with open("gitlab_data12.csv", mode="w", newline="", encoding="utf-8") as csv_file:
+    fieldnames = ["Issue ID", "Upload Paths"]
+    writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
+    writer.writeheader()
+
+    upload_paths = []  # List to store upload paths for the specified issue
+    notes = get_notes_for_issue(ISSUE_ID)
+    for note in notes:
+        # Check if "body" contains "/uploads/"
+        body = note["body"]
+        uploads = re.findall(r'/uploads/[^)]*', body)
+        if uploads:
+            upload_paths.extend(uploads)
+
+    # Write the issue ID and upload paths to the CSV file
+    writer.writerow({
+        "Issue ID": ISSUE_ID,
+        "Upload Paths": ", ".join(upload_paths)  # Comma-separated list of paths
+    })
+
+print("Data has been saved to gitlab_data.csv")
