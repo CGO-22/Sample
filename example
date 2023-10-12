@@ -17,47 +17,54 @@ def get_notes_for_issue(issue_id):
         return response.json()
     return []
 
-# Create a CSV file and write the data
-with open("all_issues_comments_grouped.csv", mode="w", newline="", encoding="utf-8") as csv_file:
-    writer = csv.writer(csv_file)
-
-    # Create headers for Upload Paths
-    headers = ["Issue ID", "Upload Paths"]
-    writer.writerow(headers)
-
+# Function to get all issues
+def get_all_issues():
+    all_issues = []
     page = 1
-
     while True:
         issues_url = f"{BASE_URL}/issues?per_page=100&page={page}"
         response = requests.get(issues_url, headers={"PRIVATE-TOKEN": ACCESS_TOKEN})
-        
-        if response.status_code != 200:
+        if response.status_code == 200:
+            issues_data = response.json()
+            if not issues_data:
+                break  # No more issues to retrieve
+            all_issues.extend(issues_data)
+            page += 1
+        else:
             print(f"Failed to retrieve issues. Status code: {response.status_code}")
             break
-        
-        issues_data = response.json()
-        
-        if not issues_data:
-            break  # No more issues to retrieve
+    return all_issues
 
-        for issue in issues_data:
-            issue_id = issue["id"]
-            notes = get_notes_for_issue(issue_id)
-            upload_paths = []
+# Create a CSV file and write the data
+with open("all_issues_comments_grouped_b.csv", mode="w", newline="", encoding="utf-8") as csv_file:
+    writer = csv.writer(csv_file)
 
-            for note in notes:
-                body = note["body"]
-                uploads = re.findall(r'/uploads/[^)]*', body)
-                upload_paths.extend(uploads)
+    # Get all issues
+    all_issues = get_all_issues()
 
-            # Add the prefix to each upload path
-            prefix = 'file://csvimport/'
-            upload_paths = [prefix + path for path in upload_paths]
+    # Create headers for Upload Paths
+    headers = ["Issue ID"] + [f"Upload Paths {i+1}" for i in range(10)]  # Assuming a maximum of 10 paths
+    writer.writerow(headers)
 
-            # Write data to CSV
-            row_data = [issue_id, ",".join(upload_paths)]
-            writer.writerow(row_data)
+    for issue in all_issues:
+        issue_id = issue["iid"]
+        notes = get_notes_for_issue(issue_id)
+        upload_paths = []
 
-        page += 1
+        for note in notes:
+            body = note["body"]
+            uploads = re.findall(r'/uploads/[^)]*', body)
+            upload_paths.extend(uploads)
+
+        # Add the prefix to each upload path
+        prefix = 'file://csvimport/'
+        upload_paths = [prefix + path for path in upload_paths]
+
+        # Truncate or pad the list to a fixed length (10 in this case)
+        upload_paths = upload_paths[:10] + [''] * (10 - len(upload_paths))
+
+        # Write data to CSV
+        row_data = [issue_id] + upload_paths
+        writer.writerow(row_data)
 
 print("Data has been saved to all_issues_comments_grouped.csv")
