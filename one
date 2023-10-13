@@ -5,7 +5,6 @@ import re
 # Set your GitLab project ID and access token
 PROJECT_ID = 41299063
 ACCESS_TOKEN = "glpat-XsRzi9SD8yHJyMavhhh3"
-ISSUE_ID = 4  # Specify the specific issue you want to process
 
 # Define the API endpoint URL
 BASE_URL = f"https://gitlab.com/api/v4/projects/{PROJECT_ID}"
@@ -21,24 +20,38 @@ def get_notes_for_issue(issue_id):
         return []
 
 # Create a CSV file and write the data
-with open("gitlab_data12.csv", mode="w", newline="", encoding="utf-8") as csv_file:
-    fieldnames = ["Issue ID", "Upload Paths"]
+issue_ids = []  # List to store unique issue IDs
+upload_paths_by_issue = {}  # Dictionary to store upload paths by issue
+
+# Read the list of issue IDs from the input CSV file
+with open("new1.csv", mode="r", encoding="utf-8") as input_csv:
+    csv_reader = csv.reader(input_csv)
+    next(csv_reader)  # Skip the header row if it exists
+    issue_ids = [int(row[0]) for row in csv_reader]
+
+# Collect unique upload paths and associate them with issue IDs
+for issue_id in issue_ids:
+    notes = get_notes_for_issue(issue_id)
+    upload_paths = set()  # Use a set to ensure unique paths
+    for note in notes:
+        body = note["body"]
+        uploads = re.findall(r'/uploads/[^)]*', body)
+        upload_paths.update(uploads)
+    upload_paths_by_issue[issue_id] = upload_paths
+
+# Prepare fieldnames for the output CSV file
+fieldnames = ["Issue ID"] + [f"Upload Path {i+1}" for i in range(max(len(paths) for paths in upload_paths_by_issue.values()))]
+
+# Create a CSV file and write the data
+with open("output.csv", mode="w", newline="", encoding="utf-8") as csv_file:
     writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
     writer.writeheader()
 
-    upload_paths = []  # List to store upload paths for the specified issue
-    notes = get_notes_for_issue(ISSUE_ID)
-    for note in notes:
-        # Check if "body" contains "/uploads/"
-        body = note["body"]
-        uploads = re.findall(r'/uploads/[^)]*', body)
-        if uploads:
-            upload_paths.extend(uploads)
+    for issue_id in issue_ids:
+        data_dict = {"Issue ID": issue_id}
+        upload_paths = list(upload_paths_by_issue[issue_id])
+        for i, path in enumerate(upload_paths):
+            data_dict[f"Upload Path {i+1}"] = path
+        writer.writerow(data_dict)
 
-    # Write the issue ID and upload paths to the CSV file
-    writer.writerow({
-        "Issue ID": ISSUE_ID,
-        "Upload Paths": ", ".join(upload_paths)  # Comma-separated list of paths
-    })
-
-print("Data has been saved to gitlab_data.csv")
+print("Data has been saved to output.csv")
