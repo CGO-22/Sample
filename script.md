@@ -3,21 +3,22 @@
 1. **Automatically close TM Alerts**
     
     //Condition
-    issue.customfield_10083 >= 2 && issue.customfield_10083 < 3
+   
+        issue.customfield_10083 >= 2 && issue.customfield_10083 < 3
     
-    //additional code 
-    def doneTransitionId = 31
-    
-    def transition = post("/rest/api/2/issue/" + issue.key + "/transitions")
-                .header("Content-Type", "application/json")
-                .body([transition: [id: doneTransitionId]])
-                .asObject(Map)
-    
-    assert transition.status >= 200 && transition.status <= 300
+    //additional code
+   
+        def doneTransitionId = 31
+        def transition = post("/rest/api/2/issue/" + issue.key + "/transitions")
+                    .header("Content-Type", "application/json")
+                    .body([transition: [id: doneTransitionId]])
+                    .asObject(Map)
+        
+        assert transition.status >= 200 && transition.status <= 300
 
 
 
-2. **Add watchers Rule**
+3. **Add watchers Rule**
 
         def issueKey =issue.key
         
