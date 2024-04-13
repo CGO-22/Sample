@@ -151,6 +151,69 @@
                 return "Failed to find issue: Status: ${result.status} ${result.body}"
             }
 
+ 6. **Ticket End time Update FS**
+
+            def outputCfId = 'customfield_10054'
+            def currentTime = new Date().format("yyyy-MM-dd'T'HH:mm:ss.SSSZ") // Adjust the format as needed
+            def output = currentTime
+             
+            put("/rest/api/2/issue/${issue.key}") 
+                .header("Content-Type", "application/json")
+                .body([
+                    fields:[
+                        (outputCfId): output
+                    ]
+                ])
+                .asString()
+    
+7.  **copy product value for subtasks**
+
+            def issueKey = issue.key
+
+            def result = get('/rest/api/2/issue/' + issueKey)
+                    .header('Content-Type', 'application/json')
+                    .asObject(Map)
+            if (result.status == 200){
+                print("created")
+            } else {
+               print("Failed to find issue: Status: ${result.status} ${result.body}")
+            }
+            
+             if(result.body.fields.issuetype.name == "Sub-task")   {
+                def parent = result.body.fields.parent.key
+                
+                def result1 = get('/rest/api/2/issue/' + parent)
+                        .header('Content-Type', 'application/json')
+                        .asObject(Map)
+                if (result1.status == 200){
+                    def parentValue = result1.body.fields.customfield_10111.value
+                    def childValue = result1.body.fields.customfield_10111.child.value
+                    
+                    def result2 = put('/rest/api/2/issue/' + issueKey)
+                        .header('Content-Type', 'application/json')
+                        .body([
+                                fields: [
+                                        customfield_10111: [
+                                                value: parentValue,
+                                                child: [
+                                                        value: childValue
+                                                ]
+                                        ]
+                                ]
+                        ])
+                        .asString()
+                    
+                } else {
+                   print("Failed to find issue: Status: ${result2.status} ${result2.body}")
+                }
+            
+            
+            }
+            else {
+                   print("Failed to find issue: Status: ${result.status} ${result.body}")
+                }
+
+
 
 
 
