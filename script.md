@@ -73,8 +73,84 @@
         } else {
             return "Failed to find issue: Status: ${result.status} ${result.body}"
         }
+5. **when an issue is created --> automatically assign using Round Robin**
 
-6. 
+    **create proprties using Curl**
+   
+        curl -X PUT 'https://stagingproject.atlassian.net/rest/api/3/project/USE/properties/round-robbin' --user 'charanv@devtools.in:<token>' -H 'Accept: application/json' -H 'Content-Type: application/json' -d '{
+                "value": {
+                  "lastIndex": 0
+                }
+              }'
+
+
+    **Retrieve current value of round-robin project property**
+   
+            def result = get("/rest/api/2/project/<projectkey>/properties/round-robin")asString().body
+            def parsedJson = new groovy.json.JsonSlurper().parseText(result)
+            def lastIndex = parsedJson.value.lastIndex
+            
+            // Define account IDs of users to be assigned issues
+            def users = ['accountID1','accountID2']
+            
+            // Define issue key variable
+            def issueKey = issue.key;
+            
+            // Update issue with next assignee based on round-robin index and users array
+            def assignIssue = put("rest/api/2/issue/${issueKey}")
+                    .header('Content-Type', 'application/json')
+                    .queryString("notifyUsers":false)
+                    .body([
+                    fields:[
+                            assignee: [id:users[lastIndex]]
+                    ]
+            ])
+                    .asString()
+            if (assignIssue.status == 204) {
+                // Update the index for the next user assignment
+                lastIndex = (lastIndex + 1) % users.size()
+                
+                // Update the round-robin project property value
+                def updateroundrobin = put("/rest/api/2/project/<projectkey>/properties/round-robin")
+                    .header('Content-Type', 'application/json')
+                    .header('Accept', 'application/json')
+                    .body(["lastIndex": lastIndex])
+                    .asString()
+                    
+                return 'Success'
+            } else {
+                return "${assignIssue.status}: ${assignIssue.body}"
+
+      }
+
+   
+   6. **Send email when new ticket created**
+
+            def issueKey = issue.key
+            def result = get('/rest/api/2/issue/' + issueKey)
+                    .header('Content-Type', 'application/json')
+                    .asObject(Map)
+            if (result.status == 200){
+                    def resp = post("/rest/api/2/issue/${issueKey}/notify")
+                        .header("Content-Type", "application/json")
+                        .body([
+                            "subject": "Issue " + issueKey + " has been updated",
+                            "textBody": result.body.fields.summary,
+                            "to": [
+                                "users": [
+                                    [
+                                        "emailAddress": "charanv@devtools.in"
+                                    ]
+                                ]
+                            ]
+                        ])
+                        .asString()
+                
+                    return resp
+            } else {
+                return "Failed to find issue: Status: ${result.status} ${result.body}"
+            }
+
 
 
 
