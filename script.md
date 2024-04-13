@@ -37,7 +37,44 @@
             logger.error("Error adding watcher: ${watcherResp.body}")
         }
 
+4. **test copy featur upon update- Cpy product & feature select field value to Product_feature cas field**
 
+        def issueKey = issue.key
+        def result = get('/rest/api/2/issue/' + issueKey)
+                .header('Content-Type', 'application/json')
+                .asObject(Map)
+        
+        if (result.status == 200){
+            def parentValue = result.body.fields.customfield_10112?.value
+            def childValue = result.body.fields.customfield_10113?.value
+            
+            def bodyContent = [
+                fields: [
+                    customfield_10111: [
+                        value: parentValue
+                    ]
+                ]
+            ]
+            
+            if (childValue) {
+                bodyContent.fields.customfield_10111.child = [value: childValue]
+            }
+            
+            def result1 = put('/rest/api/2/issue/' + issueKey)
+                    .header('Content-Type', 'application/json')
+                    .body(bodyContent)
+                    .asString()
+        
+            if (result1.status == 204){
+                return "Issue updated successfully"
+            } else {
+                return "Failed to update issue: Status: ${result1.status} ${result1.body}"
+            }
+        } else {
+            return "Failed to find issue: Status: ${result.status} ${result.body}"
+        }
+
+6. 
 
 
 
