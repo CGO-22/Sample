@@ -18,7 +18,7 @@
 
 
 
-3. **Add watchers Rule**
+2. **Add watchers Rule**
 
         def issueKey =issue.key
         
@@ -37,7 +37,7 @@
             logger.error("Error adding watcher: ${watcherResp.body}")
         }
 
-4. **test copy featur upon update- Cpy product & feature select field value to Product_feature cas field**
+3. **test copy featur upon update- Cpy product & feature select field value to Product_feature cas field**
 
         def issueKey = issue.key
         def result = get('/rest/api/2/issue/' + issueKey)
@@ -73,7 +73,7 @@
         } else {
             return "Failed to find issue: Status: ${result.status} ${result.body}"
         }
-5. **when an issue is created --> automatically assign using Round Robin**
+4. **when an issue is created --> automatically assign using Round Robin**
 
     **create proprties using Curl**
    
@@ -124,7 +124,7 @@
       }
 
    
-   6. **Send email when new ticket created**
+5. **Send email when new ticket created**
 
             def issueKey = issue.key
             def result = get('/rest/api/2/issue/' + issueKey)
