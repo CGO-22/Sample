@@ -238,6 +238,54 @@
         return "Failed to find issue: Status: ${result.status} ${result.body}"
     }
 
+9. **Sub task automatic transition**
+
+        // Define transition IDs for different statuses
+        def todoTransitionId = 11
+        def inProgressTransitionId = 21
+        def doneTransitionId = 31
+        
+        // Check the current status of the parent issue
+        def parentStatus = issue.fields.status.name
+        
+        // Map parent statuses to corresponding subtask transition IDs
+        def transitionMap = [
+            "To Do": todoTransitionId,
+            "In Progress": inProgressTransitionId,
+            "Done": doneTransitionId
+        ]
+        
+        // Get the transition ID for the parent status
+        def transitionId = transitionMap[parentStatus]
+        
+        // Transition subtasks based on the parent status
+        transitionSubtasks(transitionId)
+        
+        // Function to transition subtasks
+        def transitionSubtasks(transitionId) {
+            // Get all subtasks below the parent issue
+            def jqlQuery = "parent=${issue.key}"
+            def allSubTasks = get("/rest/api/2/search")
+                    .queryString("jql", jqlQuery)
+                    .asObject(Map)
+        
+            assert allSubTasks.status >= 200 && allSubTasks.status <= 300
+        
+            def subtaskIssues = allSubTasks.body.issues as List<Map>
+        
+            // Iterate over each subtask and transition
+            subtaskIssues.each { subtask ->
+                def transition = post("/rest/api/2/issue/" + subtask.key + "/transitions")
+                        .header("Content-Type", "application/json")
+                        .body([transition: [id: transitionId]])
+                        .asObject(Map)
+        
+                assert transition.status >= 200 && transition.status <= 300
+            }
+        }
+
+10. 
+
 
 
 
