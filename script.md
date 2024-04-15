@@ -216,11 +216,11 @@
 
 8. **Assign unassigned defects** 
 
-    def issueKey = issue.key
-    def result = get('/rest/api/2/issue/' + issueKey)
-            .header('Content-Type', 'application/json')
-            .asObject(Map)
-    if (result.body.fields.assign == null && result.body.fields.issuetype.name == 'Bug'){
+        def issueKey = issue.key
+        def result = get('/rest/api/2/issue/' + issueKey)
+                .header('Content-Type', 'application/json')
+                .asObject(Map)
+        if (result.body.fields.assign == null && result.body.fields.issuetype.name == 'Bug'){
         
         def result2 = put('/rest/api/2/issue/' + issueKey)
                     .header('Content-Type', 'application/json')
