@@ -284,7 +284,39 @@
             }
         }
 
-10. 
+10. **Send mail to Single user picker field user**
+
+        def issueKey = issue.key
+
+        def result = get('/rest/api/2/issue/' + issueKey)
+                .header('Content-Type', 'application/json')
+                .asObject(Map)
+        if (result.status == 200){
+           
+        
+            def id = result.body.fields.customfield_10057?.accountId
+        
+            def resp = post("/rest/api/2/issue/${issueKey}/notify")
+                .header("Content-Type", "application/json")
+                .body([
+                    "subject": "Issue " + issueKey + " has been updated",
+                    "textBody": result.body.fields.summary,
+                    "to": [
+                        "users": [
+                            [
+                                "accountId": id
+                            ]
+                        ]
+                    ]
+                ])
+                .asString()
+        
+            return resp
+        } else {
+            return "Failed to find issue: Status: ${result.status} ${result.body}"
+        }
+
+11. 
 
 
 
