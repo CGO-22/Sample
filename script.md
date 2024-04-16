@@ -316,7 +316,83 @@
             return "Failed to find issue: Status: ${result.status} ${result.body}"
         }
 
-11. 
+11. **if all child issues "in progres" then it parent transition to "in progres"**
+
+        def issueKey = issue.key
+        def transitionId = 21
+        
+        // Retrieve the issue
+        def issueResult = get("/rest/api/2/issue/${issueKey}")
+                .header('Content-Type', 'application/json')
+                .asObject(Map)
+        
+        if (issueResult.status != 200) {
+             logger.warn("Failed to find issue: Status: ${issueResult.status} ${issueResult.body}")
+        }
+        
+        def parentKey = issueResult.body.fields?.parent?.key
+        
+        if (!parentKey) {
+            logger.warn("Parent issue not found for ${issueKey}")
+        }
+        
+        // Retrieve all child issues
+        def childIssuesResult = get("/rest/api/2/search")
+                .queryString("jql", "parent=${parentKey}")
+                .asObject(Map)
+        
+        assert childIssuesResult.status >= 200 && childIssuesResult.status <= 300
+        
+        def childIssues = childIssuesResult.body.issues as List<Map>
+        
+        // Check if all child issues are "In Progress"
+        def allInProgress = childIssues.every { child ->
+            def childResult = get("/rest/api/2/issue/${child.key}")
+                    .header('Content-Type', 'application/json')
+                    .asObject(Map)
+        
+            if (childResult.status == 200) {
+                return childResult.body.fields.status.name == "In Progress"
+            } else {
+                return false
+            }
+        }
+        
+        if (allInProgress) {
+            // Transition the parent issue
+            def transition = post("/rest/api/2/issue/${parentKey}/transitions")
+                    .header("Content-Type", "application/json")
+                    .body([transition: [id: transitionId]])
+                    .asObject(Map)
+        } else {
+             logger.warn("Not all child issues are in progress.")
+        }
+
+12. **When issue transitioned send the slack message**
+    
+    def issueKey = issue.key
+    def jiraResult = get("/rest/api/2/issue/${issueKey}")
+            .header('Content-Type', 'application/json')
+            .asObject(Map)
+    
+    if (jiraResult.status == 200){
+        def jiraFields = jiraResult.body.fields
+        
+        def webhookUrl = 'https://hooks.slack.com/services/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'
+    
+        def msg = [
+            text: "${issueKey} Updated"
+        ]
+    
+        post(webhookUrl)
+            .header('Content-Type', 'application/json')
+            .body(msg)
+            .asString()
+        } else {
+        println "Failed to find issue: Status: ${jiraResult.status} ${jiraResult.body}"
+        }
+
+14. 
 
 
 
