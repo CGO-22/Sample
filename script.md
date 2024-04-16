@@ -392,7 +392,53 @@
         println "Failed to find issue: Status: ${jiraResult.status} ${jiraResult.body}"
         }
 
-14. 
+14. **Inherit PAF fields for subtasks from its parent**
+
+        def issueKey = 'SR-26'
+    
+        def result = get('/rest/api/2/issue/' + issueKey)
+                .header('Content-Type', 'application/json')
+                .asObject(Map)
+        if (result.status == 200){
+            logger.warn("Success")
+        } else {
+            return "Failed to find issue: Status: ${result.status} ${result.body}"
+        }
+        
+        def parent = result.body.fields.parent.key
+        logger.warn("Parent issue key: $parent")
+        
+        def result2 = get('/rest/api/2/issue/' + parent)
+                .header('Content-Type', 'application/json')
+                .asObject(Map)
+        
+        def product = result2.body.fields.customfield_10112?.value
+        def feature = result2.body.fields.customfield_10113?.value
+        
+        logger.warn("Product: $product")
+        logger.warn("Feature: $feature")
+        
+        def result3 = put('/rest/api/2/issue/' + issueKey)
+                     .header('Content-Type', 'application/json')
+                     .body([
+                             fields: [
+                                     customfield_10112: [
+                                                value: product
+                                     ],
+                                     customfield_10113: [
+                                                value: feature
+                                     ]
+                             ]
+                     ])
+                     .asString()
+        
+        if (result3.status == 204) {
+            logger.warn("Issue update successful")
+        } else {
+            logger.warn("Issue update failed: Status: ${result3.status} ${result3.body}")
+        }
+
+15. 
 
 
 
