@@ -507,7 +507,43 @@
             logger.warn("not sprint")
         }
 
-16. 
+16. **Edit fields upon moving to Not started**
+
+        def issueKey = issue.key
+        
+        // Fetch the issue details
+        def result = get('/rest/api/2/issue/' + issueKey)
+            .header('Content-Type', 'application/json')
+            .asObject(Map)
+        
+        if(result.body.fields.issuetype.name == 'Sub-task')
+        {
+        // Get the value of the source custom field
+        def options = result.body.fields.customfield_10059.value
+        def duedate = result.body.fields.customfield_10058
+        
+        // Ensure options is a list
+        if (options instanceof List && options.size() > 0) {
+            // Create a list to store the new values for customfield_10061
+            def newValues = options.collect { option -> ["value": option.toString()] }
+            
+            // Perform the update to copy all options to customfield_10061
+            def result2 = put('/rest/api/2/issue/' + issueKey)
+                .header('Content-Type', 'application/json')
+                .body([
+                    fields: [
+                        "customfield_10061": newValues,
+                        "customfield_10060" : duedate
+                    ]
+                ])
+                .asString()
+            
+            // Print the response body for the update
+            println("Update result: ${result2.body}")
+        } else {
+            println("No options found in customfield_10059")
+        }
+        }
 
 
 
