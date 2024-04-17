@@ -438,7 +438,76 @@
             logger.warn("Issue update failed: Status: ${result3.status} ${result3.body}")
         }
 
-15. 
+15. **Alert on new item added to a started sprint for PS**
+
+        def issueKey = issue.key
+        def customFieldToMonitor = "customfield_10020"
+        
+        // Get the changelog for the issue
+        def changelogResponse = get('/rest/api/3/issue/' + issueKey + '/changelog?orderBy=-created')
+                                .header('Content-Type', 'application/json')
+                                .asObject(Map)
+        
+        // Check if the request was successful
+        if (changelogResponse.status != 200) {
+           logger.error("Failed to fetch changelog for issue $issueKey. Status code: ${changelogResponse.status}")
+           return;
+        }
+        
+        // Extract the changelog entries
+        def changelog = changelogResponse.body.values
+        
+        // Iterate through changelog entries and extract 'created' and 'items' values
+        def createdAndItemsValues = changelog.collect { entry ->
+            [created: entry.created, items: entry.items.collect { it.field }]
+        }
+        
+        // Sort the createdAndItemsValues list by 'created' date in descending order
+        def sortedCreatedAndItemsValues = createdAndItemsValues.sort { a, b -> b.created <=> a.created }
+        
+        // Get the most recent 'created' value and its corresponding 'items' value
+        def mostRecentEntry = sortedCreatedAndItemsValues.first()
+        
+        // Now mostRecentEntry contains the most recent 'created' value and its corresponding 'items' value
+        logger.warn("Most recent 'created' value: ${mostRecentEntry.created}")
+        logger.warn("Corresponding 'items' value: ${mostRecentEntry.items}")
+        
+        if (mostRecentEntry.items.contains("Sprint")) {
+            
+            def result = get('/rest/api/2/issue/' + issueKey)
+                .header('Content-Type', 'application/json')
+                .asObject(Map)
+                if (result.status == 200){
+                    def subtaskType = result.body.fields.issuetype.subtask.toString() // Convert boolean to string
+                    def customFieldStates = result.body.fields.customfield_10020.state.collect { it.toString() } // Convert all states to strings
+                    logger.warn(subtaskType)
+                    logger.warn(customFieldStates)
+                    if(subtaskType == 'false' && customFieldStates.contains('active')){
+                        
+                        def resp = post("/rest/api/2/issue/${issueKey}/notify")
+                         .header("Content-Type", "application/json")
+                         .body([
+                             "subject": "Issue " + issueKey + " has been Sprint updated",
+                             "htmlBody": "Summary: ${result.body.fields.summary}",
+                             "to": [
+                                 "users": [
+                                     [
+                                         "emailAddress": "charanv@devtools.in"
+                                     ]
+                                 ]
+                             ]
+                         ])
+                         .asString()
+                    }
+                    } else {
+                        return "Failed to find issue: Status: ${result.status} ${result.body}"
+                    }
+        
+        } else {
+            logger.warn("not sprint")
+        }
+
+16. 
 
 
 
