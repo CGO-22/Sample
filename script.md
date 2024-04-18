@@ -547,63 +547,62 @@
 
 17. Move Epic to in progres when child started
 
-    def issueKey = issue.key
-    def transitionId = 21
-    
-    // Retrieve the issue
-    def issueResult = get("/rest/api/2/issue/${issueKey}")
-            .header('Content-Type', 'application/json')
-            .asObject(Map)
-    
-    if (issueResult.status != 200) {
-         logger.warn("Failed to find issue: Status: ${issueResult.status} ${issueResult.body}")
-    }
-    
-    def parentKey = issueResult.body.fields?.parent?.key
-    
-    if (!parentKey) {
-        logger.warn("Parent issue not found for ${issueKey}")
-    }
-    
-    
-    if(issueResult.body.fields?.parent?.fields.issuetype.name == 'Epic'){
-    // Retrieve all child issues
-    def childIssuesResult = get("/rest/api/2/search")
-            .queryString("jql", "parent=${parentKey}")
-            .asObject(Map)
-    
-    assert childIssuesResult.status >= 200 && childIssuesResult.status <= 300
-    
-    def childIssues = childIssuesResult.body.issues as List<Map>
-    
-    // Check if at least one child issue is "In Progress"
-    def anyInProgress = childIssues.any { child ->
-        def childResult = get("/rest/api/2/issue/${child.key}")
+        def issueKey = issue.key
+        def transitionId = 21
+        
+        // Retrieve the issue
+        def issueResult = get("/rest/api/2/issue/${issueKey}")
                 .header('Content-Type', 'application/json')
                 .asObject(Map)
-    
-        if (childResult.status == 200) {
-            return childResult.body.fields.status.name == "In Progress"
-        } else {
-            return false
+        
+        if (issueResult.status != 200) {
+             logger.warn("Failed to find issue: Status: ${issueResult.status} ${issueResult.body}")
         }
-    }
-    
-    if (anyInProgress) {
-        // Transition the parent issue
-        def transition = post("/rest/api/2/issue/${parentKey}/transitions")
-                .header("Content-Type", "application/json")
-                .body([transition: [id: transitionId]])
+        
+        def parentKey = issueResult.body.fields?.parent?.key
+        
+        if (!parentKey) {
+            logger.warn("Parent issue not found for ${issueKey}")
+        }
+        
+        
+        if(issueResult.body.fields?.parent?.fields.issuetype.name == 'Epic'){
+        // Retrieve all child issues
+        def childIssuesResult = get("/rest/api/2/search")
+                .queryString("jql", "parent=${parentKey}")
                 .asObject(Map)
-    } else {
-         logger.warn("No child issues are in progress.")
-    }
-    }
-    else{
-    
-        logger.warn("It is not a Standard issue")
-    }
-18. 
+        
+        assert childIssuesResult.status >= 200 && childIssuesResult.status <= 300
+        
+        def childIssues = childIssuesResult.body.issues as List<Map>
+        
+        // Check if at least one child issue is "In Progress"
+        def anyInProgress = childIssues.any { child ->
+            def childResult = get("/rest/api/2/issue/${child.key}")
+                    .header('Content-Type', 'application/json')
+                    .asObject(Map)
+        
+            if (childResult.status == 200) {
+                return childResult.body.fields.status.name == "In Progress"
+            } else {
+                return false
+            }
+        }
+        
+        if (anyInProgress) {
+            // Transition the parent issue
+            def transition = post("/rest/api/2/issue/${parentKey}/transitions")
+                    .header("Content-Type", "application/json")
+                    .body([transition: [id: transitionId]])
+                    .asObject(Map)
+        } else {
+             logger.warn("No child issues are in progress.")
+        }
+        }
+        else{
+        
+            logger.warn("It is not a Standard issue")
+        } 
 
 
 
