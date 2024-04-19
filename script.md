@@ -369,13 +369,13 @@
         }
 
 12. **When issue transitioned send the slack message**
+
     
-    def issueKey = issue.key
-    def jiraResult = get("/rest/api/2/issue/${issueKey}")
-            .header('Content-Type', 'application/json')
-            .asObject(Map)
-    
-    if (jiraResult.status == 200){
+        def issueKey = issue.key
+        def jiraResult = get("/rest/api/2/issue/${issueKey}")
+                .header('Content-Type', 'application/json')
+                .asObject(Map)
+        if (jiraResult.status == 200){
         def jiraFields = jiraResult.body.fields
         
         def webhookUrl = 'https://hooks.slack.com/services/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'
