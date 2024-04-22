@@ -392,7 +392,7 @@
         println "Failed to find issue: Status: ${jiraResult.status} ${jiraResult.body}"
         }
 
-14. **Inherit PAF fields for subtasks from its parent**
+13. **Inherit PAF fields for subtasks from its parent**
 
         def issueKey = 'SR-26'
     
@@ -438,7 +438,7 @@
             logger.warn("Issue update failed: Status: ${result3.status} ${result3.body}")
         }
 
-15. **Alert on new item added to a started sprint for PS**
+14. **Alert on new item added to a started sprint for PS**
 
         def issueKey = issue.key
         def customFieldToMonitor = "customfield_10020"
@@ -507,7 +507,7 @@
             logger.warn("not sprint")
         }
 
-16. **Edit fields upon moving to Not started**
+15. **Edit fields upon moving to Not started**
 
         def issueKey = issue.key
         
@@ -545,7 +545,7 @@
         }
         }
 
-17. **Move Epic to in progres when child started**
+16. **Move Epic to in progres when child started**
 
         def issueKey = issue.key
 
@@ -643,3 +643,73 @@
         } else {
             logger.warn("not sprint")
         }
+
+
+17. Send email for ticket creation Viction (Filter Summary )
+   
+            // Set the Jira issue key
+            def issueKey = issue.key
+            
+            // Fetch the issue details from the Jira REST API
+            def result = get('/rest/api/2/issue/' + issueKey)
+                    .header('Content-Type', 'application/json')
+                    .asObject(Map)
+            
+            // Ensure the request was successful
+            if (result.status == 200) {
+                def issueDetails = result.body
+                def summary = issueDetails.fields.summary
+                def subtaskType = issueDetails.fields.issuetype.subtask
+                def issueType = issueDetails.fields.issuetype.name
+                def reporterId = issueDetails.fields.reporter?.accountId
+                def customNumber = issueDetails.fields?.customfield_10083
+                def customRuleName = issueDetails.fields?.customfield_10084
+            
+                // Find the first comma in the summary
+                def commaIndex = summary.indexOf(',')
+            
+                if (commaIndex != -1) {
+                    // Get the part after the first comma, trimming leading and trailing whitespace
+                    def summaryAfterComma = summary.substring(commaIndex + 1).trim()
+            
+                    // Extract relevant fields from the issue details
+                    
+            
+            
+                  
+                    logger.warn("Subtask type: ${subtaskType}, Issue type: ${issueType}, Reporter ID: ${reporterId}, Custom number: ${customNumber}, Custom rule name: ${customRuleName}")
+            
+                    // Check the conditions for sending the notification
+                    if ((issueType == "Story" || issueType == "Task") &&
+                    (!subtaskType) &&
+                    (reporterId == '630a0d15ec02b5f28b63a024') &&
+                    ((customNumber == 5) || (customNumber == 7)) &&
+                    (customRuleName.contains("LVRP"))) {
+                            
+                        // Send the notification to a specific email address
+                        def notifyResponse = post("/rest/api/2/issue/${issueKey}/notify")
+                            .header("Content-Type", "application/json")
+                            .body([
+                                "subject": summaryAfterComma + " Blocked Faster Payment Victim",
+                                "htmlBody": issueDetails.fields.description,
+                                "to": [
+                                    "users": [
+                                        ["emailAddress": "charanv@devtools.in"]
+                                    ]
+                                ]
+                            ])
+                            .asString()
+                        
+                         logger.warn(notifyResponse)
+                    } else {
+                        logger.warn("Conditions for sending the notification were not met")
+                    }
+                } else {
+                    // No comma in the summary
+                    logger.warn("Summary does not contain a comma")
+                }
+            } else {
+                // Log error details for failed requests
+               logger.warn("Failed to fetch issue details: Status ${result.status} - ${result.body}")
+            }
+ 
