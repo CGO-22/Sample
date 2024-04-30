@@ -765,4 +765,53 @@
             }else{
                 println("Story points not null")
             }
-    
+
+19. Send web request
+
+            import groovy.json.JsonOutput
+            import org.apache.http.HttpEntity
+            import org.apache.http.client.methods.HttpPost
+            import org.apache.http.entity.StringEntity
+            import org.apache.http.impl.client.HttpClients
+            
+            // Convert objects to JSON strings
+            def issueString = JsonOutput.toJson(issue)
+            def userString = JsonOutput.toJson(user)
+            
+            // Define the timestamp
+            def timestamp1 = JsonOutput.toJson(timestamp)
+            
+            // Create a map with the desired format
+            def combinedJson = [
+                issue: issueString,
+                user: userString,
+                timestamp: timestamp1
+            ]
+            
+            // Convert the combined map to a JSON string
+            def combinedJsonString = JsonOutput.toJson(combinedJson)
+            
+            // Define the endpoint URL
+            def endpointUrl = "https://smee.io/3rWqEkwTZ9EyFeo2"
+            
+            // Create an HttpClient instance
+            def httpClient = HttpClients.createDefault()
+            
+            // Create a POST request
+            def postRequest = new HttpPost(endpointUrl)
+            
+            // Set the content type of the request
+            postRequest.setHeader("Content-Type", "application/json")
+            
+            // Set the JSON payload for the request
+            postRequest.setEntity(new StringEntity(combinedJsonString))
+            
+            // Execute the request and get the response
+            def response = httpClient.execute(postRequest)
+            
+            // Log the response if needed
+            logger.warn(response.toString())
+            
+            // Close the HttpClient
+            httpClient.close()
+
