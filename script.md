@@ -645,7 +645,7 @@
         }
 
 
-17. Send email for ticket creation Viction (Filter Summary )
+17. **Send email for ticket creation Viction (Filter Summary )**
    
             // Set the Jira issue key
             def issueKey = issue.key
@@ -712,4 +712,57 @@
                 // Log error details for failed requests
                logger.warn("Failed to fetch issue details: Status ${result.status} - ${result.body}")
             }
- 
+
+ 18. **Story points updates(comment addig if story pount is empty)**
+
+
+            import java.util.regex.*
+            
+            // Step 1: Get the issue information
+            def issueKey = 'SR-65'
+            
+            def issueResult = get('/rest/api/2/issue/' + issueKey)
+                .header('Content-Type', 'application/json')
+                .asObject(Map)
+            
+            def reporter = issueResult.body.fields.reporter?.accountId
+            def assignee = issueResult.body.fields.assignee?.accountId
+            
+            def commentText = """
+            Hi [~accountid:${reporter}] [~accountid:${assignee}],
+            
+            Please update story points estimate as this story is already DoR ready.
+            """
+            
+            
+            def text = "Please update story points estimate as this story is already DoR ready."
+            
+            // Step 2: Get existing comments for the issue
+            def commentsResult = get('/rest/api/2/issue/' + issueKey + '/comment')
+                .header('Content-Type', 'application/json')
+                .asObject(Map)
+            
+            // Step 3: Check for duplicate comments
+            def comments = commentsResult.body.comments
+            def commentAlreadyExists = comments.any { comment ->
+                comment.body.contains(text.trim())
+            }
+            
+            
+            
+            if(issueResult.body.fields.customfield_10035 == null){
+            if (!commentAlreadyExists) {
+                // Step 4: Add the new comment only if it doesn't already exist
+                def addCommentResult = post('/rest/api/2/issue/' + issueKey + '/comment')
+                    .header('Content-Type', 'application/json')
+                    .body(["body": commentText.trim()])
+                    .asObject(Map)
+            
+                println(addCommentResult) // This should output the response from Jira, you can check if it was successful
+            } else {
+                println("Duplicate comment found, not adding a new one.")
+            }
+            }else{
+                println("Story points not null")
+            }
+    
