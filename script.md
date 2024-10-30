@@ -815,3 +815,34 @@
             // Close the HttpClient
             httpClient.close()
 
+
+20. Field value Changed
+
+    def issueKey = issue.key
+    logger.info("Issue Key: " + issueKey)
+    // Define the target status we are looking for
+    def targetStatus = ["In Progress"]
+    // Iterate over the changelog items
+    for (item in changelog.items) {
+    // Check if the field is 'status'
+    if (item.field == "status") {
+        // Check if the status was changed to one of the target statuses
+        if (targetStatus.contains(item.toString)) {
+        def author = event.user.accountId
+        println(author)
+         
+                // Update the assignee to the author of the transition
+                def updateResult = put("/rest/api/3/issue/${issueKey}/assignee")
+                    .header('Content-Type', 'application/json')
+                    .body([
+                        accountId: author
+                    ])
+                    .asString()
+                
+                if (updateResult.status == 204) {
+                    logger.info("Assignee updated successfully.")
+                } else {
+                    logger.error("Failed to update assignee: " + updateResult.body)
+                }
+        }
+    }
